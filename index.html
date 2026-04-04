@@ -961,8 +961,6 @@ import {
   writeBatch, getDocs, where, 
   limitToLast, limit, startAfter 
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-// IMPORT FIREBASE MESSAGING
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 /* KONFIGURASI SUPABASE */
@@ -984,7 +982,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const messaging = getMessaging(app); // INISIALISASI MESSAGING
 
 /* STATE */
 let username="", replyData=null;
@@ -1351,33 +1348,6 @@ async function uploadToSupabase(file) {
   } catch (error) { console.error('Upload error:', error); throw error; }
 }
 
-/* FUNGSI SETUP PUSH NOTIFICATIONS */
-async function setupPushNotifications(uid) {
-  try {
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      const token = await getToken(messaging, {
-        vapidKey: 'BH-Bd6p0zzEI7LccM5U_aLDUFrDg4rq41bVMtrhbXLFRNdrdZFZPDIhEhVkMz6CH8Z1nU8fSD-d5ZvJEngECDq4'
-      });
-      if (token) {
-        console.log('FCM Token berhasil didapat:', token);
-        // Simpan token ke dokumen user
-        await updateDoc(doc(db, "usernames", uid), { fcmToken: token });
-      }
-    } else {
-      console.log('Izin notifikasi ditolak oleh pengguna.');
-    }
-  } catch (error) {
-    console.error('Gagal mengatur notifikasi:', error);
-  }
-}
-
-/* LISTENER PESAN NOTIFIKASI FOREGROUND */
-onMessage(messaging, (payload) => {
-  console.log('Pesan notifikasi diterima (foreground):', payload);
-  // Optional: Anda bisa menggunakan custom alert, toast, atau memperbarui badge
-});
-
 /* AUTH */
 onAuthStateChanged(auth,async user=>{
   if(!user){ if(!window.location.href.includes('login.html')) location.href="login.html"; return; }
@@ -1387,9 +1357,6 @@ onAuthStateChanged(auth,async user=>{
     document.getElementById("user-info").textContent=`${username}`;
     await saveLoginToFirestore('login');
     listenChat(); listenLogins();
-    
-    // Panggil fungsi setup notifikasi setelah login sukses
-    setupPushNotifications(user.uid);
   }catch(error){ console.error("Auth error:", error); }
 });
 
@@ -1500,6 +1467,7 @@ function listenChat() {
     updateScrollButtonUI();
   });
 }
+
 
 // Fungsi memperbarui tampilan tombol
 function updateScrollButtonUI() {

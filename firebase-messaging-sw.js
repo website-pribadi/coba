@@ -1,7 +1,7 @@
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.x.x/firebase-messaging-compat.js');
 
-// Inisialisasi Firebase di dalam Service Worker
+// Ganti konfigurasi ini dengan milik project Firebase Anda
 const firebaseConfig = {
   apiKey: "AIzaSyDyNGIqto0Sk0UT1IzC-xgOV9sI71GrIu8",
   authDomain: "webchat-coba.firebaseapp.com",
@@ -12,15 +12,17 @@ const firebaseConfig = {
   measurementId: "G-VEKM8LJRY1"
 };
 
+firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// Menangani background messages
+// Menangani notifikasi saat aplikasi di background
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Pesan diterima di latar belakang: ', payload);
+  console.log('Pesan background diterima: ', payload);
+
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/chat.png' // Sesuaikan dengan ikon Anda
+    icon: 'chat.png' // Ganti dengan path icon Anda
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
