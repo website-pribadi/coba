@@ -2,14 +2,15 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
 // Inisialisasi Firebase di dalam Service Worker
-firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-});
+const firebaseConfig = {
+  apiKey: "AIzaSyDyNGIqto0Sk0UT1IzC-xgOV9sI71GrIu8",
+  authDomain: "webchat-coba.firebaseapp.com",
+  projectId: "webchat-coba",
+  storageBucket: "webchat-coba.firebasestorage.app",
+  messagingSenderId: "808219710650",
+  appId: "1:808219710650:web:61320aa86fda4ce804de83",
+  measurementId: "G-VEKM8LJRY1"
+};
 
 const messaging = firebase.messaging();
 
