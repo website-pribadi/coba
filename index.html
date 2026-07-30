@@ -41,6 +41,15 @@
             line-height: 1.5;
             margin-bottom: 20px;
         }
+        .device-id {
+            background: #f3e8ff;
+            color: #7c3aed;
+            padding: 10px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -48,19 +57,14 @@
     <div class="card" id="statusCard">
         <div class="icon">⏳</div>
         <h2>Device Activation</h2>
-        <p>Memverifikasi perangkat... Harap tunggu sebentar.</p>
+        <p>Mohon tunggu sebentar, perangkat Anda sedang diverifikasi.</p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 1. SEMBUNYIKAN ALAMAT & HAPUS PARAMETER DARI RIWAYAT BROWSER
-        // Ini langsung mengganti URL di address bar tanpa reload, sehingga param/token tidak tersimpan di riwayat
-        if (window.history.replaceState) {
-            window.history.replaceState(null, document.title, window.location.pathname);
-        }
-
+        // Konfigurasi Firebase milik Anda
         const firebaseConfig = {
           apiKey: "AIzaSyBR-Uio7vtEcktTKF3vt673bO0Yeb8e6W8",
           authDomain: "pesan-cbf23.firebaseapp.com",
@@ -74,10 +78,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Batas waktu proses aktivasi (misal: 15 detik)
-        const TIMEOUT_LIMIT = 15000; 
-        let isCompleted = false;
-
+        // Ambil atau buat ID Perangkat Unik
         function getOrCreateDeviceId() {
             let deviceId = localStorage.getItem('app_device_id');
             if (!deviceId) {
@@ -87,71 +88,33 @@
             return deviceId;
         }
 
-        // Fungsi untuk menutup atau membersihkan halaman
-        function closeOrRedirect() {
-            // Coba tutup window/tab
-            window.close();
-
-            // Jika browser memblokir window.close(), alihkan ke halaman kosong
-            setTimeout(() => {
-                window.location.replace("about:blank");
-            }, 1000);
-        }
-
         async function registerDevice() {
             const card = document.getElementById('statusCard');
-
-            // Set Timeout jika proses memakan waktu terlalu lama
-            const timeoutTimer = setTimeout(() => {
-                if (!isCompleted) {
-                    isCompleted = true;
-                    card.innerHTML = `
-                        <div class="icon">⏰</div>
-                        <h2>Waktu Habis</h2>
-                        <p>Aktivasi dibatalkan karena melebihi batas waktu.</p>
-                    `;
-                    setTimeout(closeOrRedirect, 2000);
-                }
-            }, TIMEOUT_LIMIT);
+            const deviceId = getOrCreateDeviceId();
 
             try {
-                const deviceId = getOrCreateDeviceId();
+                // Simpan ID Perangkat ke Firestore di koleksi "PerangkatTerdaftar"
                 const deviceRef = doc(db, "PerangkatTerdaftar", deviceId);
-
                 await setDoc(deviceRef, {
                     registeredAt: new Date().toISOString(),
                     userAgent: navigator.userAgent,
                     status: "active"
                 }, { merge: true });
 
-                if (!isCompleted) {
-                    isCompleted = true;
-                    clearTimeout(timeoutTimer);
-
-                    card.innerHTML = `
-                        <div class="icon">✅</div>
-                        <h2>Aktivasi Berhasil!</h2>
-                        <p>Halaman ini akan otomatis ditutup...</p>
-                    `;
-
-                    // Beri jeda 2 detik agar pengguna melihat status berhasil, lalu tutup
-                    setTimeout(() => {
-                        closeOrRedirect();
-                    }, 2000);
-                }
-
+                // Tampilan Berhasil
+                card.innerHTML = `
+                    <div class="icon">✅</div>
+                    <h2>Aktivasi Berhasil!</h2>
+                    <p>Perangkat ini telah terverifikasi secara resmi.</p>
+                    <div class="device-id">ID: ${deviceId}</div>
+                `;
             } catch (error) {
-                if (!isCompleted) {
-                    isCompleted = true;
-                    clearTimeout(timeoutTimer);
-                    console.error("Gagal memverifikasi:", error);
-                    card.innerHTML = `
-                        <div class="icon">❌</div>
-                        <h2>Aktivasi Gagal</h2>
-                        <p>Terjadi kesalahan sistem.</p>
-                    `;
-                    setTimeout(closeOrRedirect, 3000);
-                }
+                console.error("Gagal memverifikasi perangkat:", error);
+                card.innerHTML = `
+                    <div class="icon">❌</div>
+                    <h2>Gagal memverifikasi</h2>
+                    <p>Terjadi kesalahan saat menghubungkan ke server. Silakan coba lagi.</p>
+                `;
             }
         }
 
