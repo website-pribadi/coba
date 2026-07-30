@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aktivasi Perangkat</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8f7ff;
+            color: #1e1b4b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card {
+            background: #ffffff;
+            padding: 30px 24px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(76, 29, 149, 0.08);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        h2 {
+            color: #4c1d95;
+            margin-bottom: 12px;
+            font-size: 22px;
+        }
+        p {
+            color: #6b7280;
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card" id="statusCard">
+        <div class="icon">⏳</div>
+        <h2>Device Activation</h2>
+        <p>Memverifikasi perangkat... Harap tunggu sebentar.</p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // 1. SEMBUNYIKAN ALAMAT & HAPUS PARAMETER DARI RIWAYAT BROWSER
+        // Ini langsung mengganti URL di address bar tanpa reload, sehingga param/token tidak tersimpan di riwayat
+        if (window.history.replaceState) {
+            window.history.replaceState(null, document.title, window.location.pathname);
+        }
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBR-Uio7vtEcktTKF3vt673bO0Yeb8e6W8",
+          authDomain: "pesan-cbf23.firebaseapp.com",
+          projectId: "pesan-cbf23",
+          storageBucket: "pesan-cbf23.firebasestorage.app",
+          messagingSenderId: "267628061888",
+          appId: "1:267628061888:web:454e04e0663ee3bec07925",
+          measurementId: "G-S174QKYL3S"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Batas waktu proses aktivasi (misal: 15 detik)
+        const TIMEOUT_LIMIT = 15000; 
+        let isCompleted = false;
+
+        function getOrCreateDeviceId() {
+            let deviceId = localStorage.getItem('app_device_id');
+            if (!deviceId) {
+                deviceId = 'dev_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+                localStorage.setItem('app_device_id', deviceId);
+            }
+            return deviceId;
+        }
+
+        // Fungsi untuk menutup atau membersihkan halaman
+        function closeOrRedirect() {
+            // Coba tutup window/tab
+            window.close();
+
+            // Jika browser memblokir window.close(), alihkan ke halaman kosong
+            setTimeout(() => {
+                window.location.replace("about:blank");
+            }, 1000);
+        }
+
+        async function registerDevice() {
+            const card = document.getElementById('statusCard');
+
+            // Set Timeout jika proses memakan waktu terlalu lama
+            const timeoutTimer = setTimeout(() => {
+                if (!isCompleted) {
+                    isCompleted = true;
+                    card.innerHTML = `
+                        <div class="icon">⏰</div>
+                        <h2>Waktu Habis</h2>
+                        <p>Aktivasi dibatalkan karena melebihi batas waktu.</p>
+                    `;
+                    setTimeout(closeOrRedirect, 2000);
+                }
+            }, TIMEOUT_LIMIT);
+
+            try {
+                const deviceId = getOrCreateDeviceId();
+                const deviceRef = doc(db, "PerangkatTerdaftar", deviceId);
+
+                await setDoc(deviceRef, {
+                    registeredAt: new Date().toISOString(),
+                    userAgent: navigator.userAgent,
+                    status: "active"
+                }, { merge: true });
+
+                if (!isCompleted) {
+                    isCompleted = true;
+                    clearTimeout(timeoutTimer);
+
+                    card.innerHTML = `
+                        <div class="icon">✅</div>
+                        <h2>Aktivasi Berhasil!</h2>
+                        <p>Halaman ini akan otomatis ditutup...</p>
+                    `;
+
+                    // Beri jeda 2 detik agar pengguna melihat status berhasil, lalu tutup
+                    setTimeout(() => {
+                        closeOrRedirect();
+                    }, 2000);
+                }
+
+            } catch (error) {
+                if (!isCompleted) {
+                    isCompleted = true;
+                    clearTimeout(timeoutTimer);
+                    console.error("Gagal memverifikasi:", error);
+                    card.innerHTML = `
+                        <div class="icon">❌</div>
+                        <h2>Aktivasi Gagal</h2>
+                        <p>Terjadi kesalahan sistem.</p>
+                    `;
+                    setTimeout(closeOrRedirect, 3000);
+                }
+            }
+        }
+
+        registerDevice();
+    </script>
+</body>
+</html>
